@@ -56,6 +56,15 @@ private inline fun <reified T> String.convert(): T =
  * and all of the generic types are inline and inferred
  * We will need to make a new method each time the number of arguments increases,
  * but this makes everything else just about as short as it can get
+ *
+ * Effectively, this method will
+ * 1. Assume the argument size matches the desired argument count
+ * 2. Assume that all arguments are formatted to the right type
+ * 3. Ensure that the contract output matches the callback input
+ *
+ * Naturally, some validation should be done prior to calling this, and this may need to be wrapped in a try catch block
+ *
+ * See [Command] for more details
  */
 private inline fun <reified T, reified O> Triple<Array<String>, Contract, Callback>.request(
         contractMethod: (Contract) -> (T) -> O,
@@ -89,7 +98,11 @@ enum class Command(override val formatter: String, private val onRequest: (Tripl
     deposit("%d", { it.request({ it::deposit }, { it::onDeposit }) }),
     withdraw("%d", { it.request({ it::withdraw }, { it::onWithdraw }) });
 
-    override fun onRequest(args: Array<String>, server: Server) = onRequest(Triple(args, server.manager, server.callback))
+    override fun onRequest(args: Array<String>, server: Server) = try {
+        onRequest(Triple(args, server.manager, server.callback))
+    } catch (e: Exception) {
+        println("An error occurred")
+    }
 
     companion object {
         private val values = values().map { it.name }.toSet()
@@ -120,8 +133,6 @@ enum class Command(override val formatter: String, private val onRequest: (Tripl
                 return println("$cmd is not a valid command")
             val command = valueOf(data[0])
             val args = data.subList(1, data.size).toTypedArray()
-            if (command.validate(args))
-                return println("$cmd does not have properly formatted arguments")
             command.onRequest(args, server)
         }
     }
