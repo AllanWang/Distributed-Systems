@@ -12,4 +12,5 @@ interface ResourceManager : Contract {
 
 interface Server {
     val manager: ResourceManager
+    val callback: Callback
 }
