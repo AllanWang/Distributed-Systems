@@ -13,4 +13,5 @@ interface ResourceManager : Contract {
 interface Server {
     val manager: ResourceManager
     val callback: Callback
+    fun onInputReceived(cmd: String) = Command.execute(this, cmd)
 }

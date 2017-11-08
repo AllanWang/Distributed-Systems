@@ -30,7 +30,15 @@ interface Binding {
 
 }
 
-inline fun <reified T> String.convert(): T =
+/*
+ * -------------------------------------------------------------
+ * Commence black magic
+ * This is possible through Kotlin's inline abilities, which effectively
+ * removes type erasure with generic types
+ * -------------------------------------------------------------
+ */
+
+private inline fun <reified T> String.convert(): T =
         when (T::class) {
             String::class -> this
             Int::class -> toInt()
@@ -38,7 +46,7 @@ inline fun <reified T> String.convert(): T =
             else -> throw IllegalArgumentException("converter type must be one of string, int, or boolean")
         } as T
 
-inline fun <reified T, reified O> Triple<Array<String>, Contract, Callback>.request(
+private inline fun <reified T, reified O> Triple<Array<String>, Contract, Callback>.request(
         contractMethod: (Contract) -> (T) -> O,
         callbackMethod: (Callback) -> (O) -> Unit) {
     val (args, contract, callback) = this
@@ -46,7 +54,7 @@ inline fun <reified T, reified O> Triple<Array<String>, Contract, Callback>.requ
     callbackMethod(callback)(out)
 }
 
-inline fun <reified T, reified R, reified O> Triple<Array<String>, Contract, Callback>.request2(
+private inline fun <reified T, reified R, reified O> Triple<Array<String>, Contract, Callback>.request2(
         contractMethod: (Contract) -> (T, R) -> O,
         callbackMethod: (Callback) -> (O) -> Unit) {
     val (args, contract, callback) = this
@@ -54,15 +62,17 @@ inline fun <reified T, reified R, reified O> Triple<Array<String>, Contract, Cal
     callbackMethod(callback)(out)
 }
 
-val onRequest: (Triple<Array<String>, Contract, Callback>) -> Unit = {
-    it.request<Int, Boolean>({ it::checkFlight }, { it::onCheckFlight })
-}
+/*
+ * -------------------------------------------------------------
+ * End black magic
+ * -------------------------------------------------------------
+ */
 
 /**
  * This allows type conversion for command tokens
  * Note that in the formatter, %d represents int, %s represents string, and %b represents bool
  */
-enum class Command(override val formatter: String, val onRequest: (Triple<Array<String>, Contract, Callback>) -> Unit) : Binding {
+enum class Command(override val formatter: String, private val onRequest: (Triple<Array<String>, Contract, Callback>) -> Unit) : Binding {
     requestFlight("%d %d", { it.request2({ it::requestFlight }, { it::onRequestFlight }) }),
     checkFlight("%d", { it.request({ it::checkFlight }, { it::onCheckFlight }) }),
     deposit("%d", { it.request({ it::deposit }, { it::onDeposit }) }),
