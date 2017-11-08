@@ -38,6 +38,10 @@ interface Binding {
  * -------------------------------------------------------------
  */
 
+/**
+ * Infers proper string conversion based on desired output
+ * The cases are not exhaustive, but should satisfy the command conditions
+ */
 private inline fun <reified T> String.convert(): T =
         when (T::class) {
             String::class -> this
@@ -46,6 +50,13 @@ private inline fun <reified T> String.convert(): T =
             else -> throw IllegalArgumentException("converter type must be one of string, int, or boolean")
         } as T
 
+/**
+ * Where the magic happens
+ * The specificity of argument size allows for the use of references,
+ * and all of the generic types are inline and inferred
+ * We will need to make a new method each time the number of arguments increases,
+ * but this makes everything else just about as short as it can get
+ */
 private inline fun <reified T, reified O> Triple<Array<String>, Contract, Callback>.request(
         contractMethod: (Contract) -> (T) -> O,
         callbackMethod: (Callback) -> (O) -> Unit) {
